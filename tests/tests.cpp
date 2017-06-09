@@ -82,5 +82,7 @@ TEST_CASE( "Brute-force attack against a known hash", "[hash_to_check]" ) {
 
         CHECK( tester(1, 3, "b58f7a3b389308b6645df1ff013e528f", "65-90:97-122") );
         REQUIRE( tester._result == "eHy" );
+
+        CHECK( !tester(1, 2, "b58f7a3b389308b6645df1ff013e5283", "65-90:97-122") );
     }
 }
