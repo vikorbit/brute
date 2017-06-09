@@ -1,9 +1,11 @@
 #pragma once
 
+#include <stdlib.h>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <memory>
 
 #include "descriptor_task.h"
 

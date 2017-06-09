@@ -46,6 +46,11 @@ bool parse_command_line(int argc, char **argv, brute::DescriptorTask & descripto
     descriptor_task.minLength = atol( argv[1] );
     descriptor_task.maxLength = atol( argv[2] );
     descriptor_task.hashToCheck = std::string( argv[4] );
+
+    if ( descriptor_task.hashToCheck.size() != 32 ) {
+        throw std::invalid_argument("hashToCheck encoded in hex must have a length of 32 characters ");
+    }
+
     return parse_alphabet(argv[3], descriptor_task.alphabet);
 }
 
