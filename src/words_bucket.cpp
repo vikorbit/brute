@@ -5,6 +5,14 @@ namespace brute {
 WordsBucket::WordsBucket() {};
 
 void WordsBucket::load( size_t minLen, size_t maxLen, std::vector<char> & alphabet ) {
+    if ( minLen <= 0 ) {
+        throw std::invalid_argument("minLen can not be zero");
+    }
+
+    if ( maxLen <= 0 ) {
+        throw std::invalid_argument("maxLen can not be zero");
+    }
+
     if ( maxLen < minLen ) {
         throw std::invalid_argument("maxLen less than minLen");
     }
