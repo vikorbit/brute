@@ -1,15 +1,14 @@
 #include "worker_pool.h"
 
-#define TIMEOUT_DURATION_MS         100
+#define TIMEOUT_DURATION_MS         500
 #define REQUESTED_VECTOR_SIZE       500
 
 namespace brute {
 
+
 WorkerPool::WorkerPool( size_t count_threads ): _countThreads(count_threads), _result(), _isResult(false) {}
 
 void WorkerPool::run( std::shared_ptr<WordsBucket> & wordsBucket, std::function<bool(const std::string&)> predicate ) {
-    std::unique_lock<std::timed_mutex> lock_mutex(_mutex);
-
     std::vector<Worker> workerPool;
     workerPool.reserve( _countThreads );
     for( size_t i = 0; i < _countThreads; ++i ) {
@@ -21,9 +20,10 @@ void WorkerPool::run( std::shared_ptr<WordsBucket> & wordsBucket, std::function<
     }
 
     _result.clear();
+    _isResult = false;
     size_t count_finished_workers = 0;
     do {
-        _conditionVar.wait(lock_mutex);
+        std::this_thread::sleep_for( std::chrono::milliseconds( TIMEOUT_DURATION_MS ) );
         count_finished_workers = 0;
         for ( Worker & worker : workerPool) {
             if ( worker.isFinished() ) {
@@ -35,7 +35,7 @@ void WorkerPool::run( std::shared_ptr<WordsBucket> & wordsBucket, std::function<
                 }
             }
         }
-    } while ( !_isResult && count_finished_workers < workerPool.size() );
+    } while ( count_finished_workers < workerPool.size() );
 }
 
 bool WorkerPool::isResult() const {
@@ -44,17 +44,6 @@ bool WorkerPool::isResult() const {
 
 std::string WorkerPool::getResult() const {
     return _result;
-}
-
-bool WorkerPool::signalFinished()
-{
-    if ( _mutex.try_lock_for( std::chrono::milliseconds( TIMEOUT_DURATION_MS ) ) ) {
-        _conditionVar.notify_one();
-        _mutex.unlock();
-        return true;
-    } else {
-        return false;
-    }
 }
 
 
@@ -84,7 +73,6 @@ void Worker::stop() {
 
 void Worker::run( std::shared_ptr<WordsBucket> & wordsBucket, std::function<bool(const std::string&)> predicate ) {
     stop();
-    _isFinished.store(false, std::memory_order_seq_cst);
     _result.clear();
     _thread.reset( new std::thread( [this, predicate, &wordsBucket ] () {
         _isWorking.store(true, std::memory_order_seq_cst);
@@ -96,42 +84,24 @@ void Worker::run( std::shared_ptr<WordsBucket> & wordsBucket, std::function<bool
                 while ( _isWorking.load( std::memory_order_seq_cst ) && i < vectorWords.size() ) {
                     if ( predicate( vectorWords[i] ) ) {
                         _result = vectorWords[i];
-                        signalFinished();
+                        _isWorking.store(false, std::memory_order_seq_cst);
                         return;
                     }
                     ++i;
                 }
             }
             else {
-                break;
+                _isWorking.store(false, std::memory_order_seq_cst);
             }
         }
-        signalFinished();
     } ) );
 }
 
-void Worker::signalFinished() {
-    std::lock_guard<std::mutex> locker(_mutex);
-    _isFinished.store(true, std::memory_order_seq_cst);
-    while ( _isWorking.load( std::memory_order_seq_cst ) ) {
-        if ( _workerPool->signalFinished() ) {
-            break;
-        }
-        else {
-            std::this_thread::sleep_for( std::chrono::milliseconds( TIMEOUT_DURATION_MS ) );
-        }
-    }
-
-    _isWorking.store(false, std::memory_order_seq_cst);
-}
-
 bool Worker::isFinished() {
-    std::lock_guard<std::mutex> locker(_mutex);
-    return _isFinished.load( std::memory_order_seq_cst );
+    return !_isWorking.load( std::memory_order_seq_cst );
 }
 
 bool Worker::isResult() {
-    std::lock_guard<std::mutex> locker(_mutex);
     if ( !_isWorking.load( std::memory_order_seq_cst ) ) {
         return !_result.empty();
     }
@@ -141,7 +111,6 @@ bool Worker::isResult() {
 }
 
 std::string Worker::getResult() {
-    std::lock_guard<std::mutex> locker(_mutex);
     return _result;
 }
 
