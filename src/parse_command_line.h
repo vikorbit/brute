@@ -11,7 +11,7 @@
 
 namespace brute {
 
-bool parse_alphabet(const std::string& str, std::vector<char> & alphabet);
-bool parse_command_line(int argc, char **argv, brute::DescriptorTask & descriptor_task);
+void parse_alphabet(const std::string& str, std::vector<char> & alphabet);
+void parse_command_line(int argc, char **argv, brute::DescriptorTask & descriptor_task);
 
 }

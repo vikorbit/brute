@@ -2,7 +2,7 @@
 
 namespace brute {
 
-bool parse_alphabet(const std::string& str, std::vector<char> & alphabet) {
+void parse_alphabet(const std::string& str, std::vector<char> & alphabet) {
     alphabet.clear();
     std::stringstream ss;
     ss << str;
@@ -12,8 +12,9 @@ bool parse_alphabet(const std::string& str, std::vector<char> & alphabet) {
             unsigned int beg, end;
             ss >> beg;
             ss >> ch;
-            if ( ch != '-' )
-                return false;
+            if ( ch != '-' ) {
+                throw std::invalid_argument("not valid format keyspace: " + str);
+            }
 
             ss >> end;
 
@@ -23,24 +24,24 @@ bool parse_alphabet(const std::string& str, std::vector<char> & alphabet) {
 
             if (!ss.eof()) {
                 ss >> ch;
-                if (ch != ':')
-                return false;
+                if (ch != ':') {
+                    throw std::invalid_argument("not valid format keyspace: " + str);
+                }
+                
             }
         }
     } catch (...) {
-        return false;
+        throw;
     }
 
     if ( alphabet.empty() ) {
-        return false;
+        throw std::invalid_argument("alphabet is empty");
     }
-    return true;
 }
 
-bool parse_command_line(int argc, char **argv, brute::DescriptorTask & descriptor_task) {
+void parse_command_line(int argc, char **argv, brute::DescriptorTask & descriptor_task) {
     if ( argc != 5 ) {
-        std::cout << "Usage: " << argv[0] << " <minLength> <maxLength> <alphabet> <hashToCheck>" << std::endl; // ./brute 3 14 65-90:97-122 hashToCheck
-        return false;
+        throw std::invalid_argument("Usage: " + std::string( argv[0] ) + " <minLength> <maxLength> <alphabet> <hashToCheck>"); // ./brute 3 14 65-90:97-122 hashToCheck
     }
 
     descriptor_task.minLength = atol( argv[1] );
@@ -51,7 +52,7 @@ bool parse_command_line(int argc, char **argv, brute::DescriptorTask & descripto
         throw std::invalid_argument("hashToCheck encoded in hex must have a length of 32 characters ");
     }
 
-    return parse_alphabet(argv[3], descriptor_task.alphabet);
+    parse_alphabet(argv[3], descriptor_task.alphabet);
 }
 
 }
