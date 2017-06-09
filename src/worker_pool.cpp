@@ -111,24 +111,27 @@ void Worker::run( std::shared_ptr<WordsBucket> & wordsBucket, std::function<bool
 }
 
 void Worker::signalFinished() {
+    std::lock_guard<std::mutex> locker(_mutex);
     _isFinished.store(true, std::memory_order_seq_cst);
     while ( _isWorking.load( std::memory_order_seq_cst ) ) {
         if ( _workerPool->signalFinished() ) {
-            _isWorking.store(false, std::memory_order_seq_cst);
             break;
         }
         else {
             std::this_thread::sleep_for( std::chrono::milliseconds( TIMEOUT_DURATION_MS ) );
         }
     }
+
     _isWorking.store(false, std::memory_order_seq_cst);
 }
 
-bool Worker::isFinished() const {
+bool Worker::isFinished() {
+    std::lock_guard<std::mutex> locker(_mutex);
     return _isFinished.load( std::memory_order_seq_cst );
 }
 
-bool Worker::isResult() const{
+bool Worker::isResult() {
+    std::lock_guard<std::mutex> locker(_mutex);
     if ( !_isWorking.load( std::memory_order_seq_cst ) ) {
         return !_result.empty();
     }
@@ -137,7 +140,8 @@ bool Worker::isResult() const{
     }
 }
 
-std::string Worker::getResult() const {
+std::string Worker::getResult() {
+    std::lock_guard<std::mutex> locker(_mutex);
     return _result;
 }
 

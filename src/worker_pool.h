@@ -46,9 +46,9 @@ public:
 
     void run( std::shared_ptr<WordsBucket> & wordsBucket, std::function<bool(const std::string&)> predicate );
     void stop();
-    bool isFinished() const;
-    bool isResult() const;
-    std::string getResult() const;
+    bool isFinished();
+    bool isResult();
+    std::string getResult();
 
 private:
     std::shared_ptr<WorkerPool> _workerPool;
